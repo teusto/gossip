@@ -13,6 +13,10 @@ describe("gossip", () => {
   const user_a = (provider.wallet as anchor.Wallet).payer;
   const user_b = anchor.web3.Keypair.generate();
 
+  let gossipPda: anchor.web3.PublicKey; // PDAs for gossips
+  
+  
+
   before(async () => {
     console.log("🤑 Funding test accounts...")
     const balance = await provider.connection.getBalance(user_a.publicKey);
@@ -26,18 +30,18 @@ describe("gossip", () => {
       const tx = await program.methods.createGossip(
         "I know",
         user_b.publicKey,
-        new anchor.BN(2)
+        new anchor.BN(0)
       ).accounts({
         user: user_a.publicKey,
       }).signers([user_a]).rpc();
 
       console.log("✅ Transaction successful:", tx);
 
-      const [gossipPda, gossipBump] = anchor.web3.PublicKey.findProgramAddressSync(
+      [gossipPda] = anchor.web3.PublicKey.findProgramAddressSync(
         [
           Buffer.from("gossip"), 
           user_a.publicKey.toBuffer(), 
-          new anchor.BN(2).toArrayLike(Buffer, "le", 8) // Convert to little-endian 8-byte buffer
+          new anchor.BN(0).toArrayLike(Buffer, "le", 8) // Convert to little-endian 8-byte buffer
         ],
         program.programId
       );
@@ -50,4 +54,22 @@ describe("gossip", () => {
       throw error;
     }
   });
+
+  it("Reveal a gossip", async () => {
+    console.log("Revealing a gossip...")
+    try {
+      const tx = await program.methods.revealGossip(new anchor.BN(0)).accounts({
+        gossip: gossipPda,
+      }).rpc();
+
+      console.log("✅ Transaction successful:", tx);
+
+      const gossipAccount = await program.account.gossip.fetch(gossipPda);
+
+      console.log("✅ Gossip account:", gossipAccount);
+    } catch (error) {
+      console.error("❌ Transaction failed:", error);
+      throw error;
+    }
+  })
 });
