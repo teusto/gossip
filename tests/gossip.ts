@@ -13,11 +13,7 @@ describe("gossip", () => {
   const user_a = (provider.wallet as anchor.Wallet).payer;
   const user_b = anchor.web3.Keypair.generate();
 
-  let vaultPda: anchor.web3.PublicKey;
-
-  let gossipPda: anchor.web3.PublicKey; // PDAs for gossips
-  
-  
+  let gossipPda: anchor.web3.PublicKey;
 
   before(async () => {
     console.log("🤑 Funding test accounts...")
@@ -33,19 +29,10 @@ describe("gossip", () => {
     const index = new anchor.BN(1);
     const price = new anchor.BN(0.1 * LAMPORTS_PER_SOL);
 
-    const [gossipPda, gossipBump] = anchor.web3.PublicKey.findProgramAddressSync(
+    [gossipPda] = anchor.web3.PublicKey.findProgramAddressSync(
       [
         Buffer.from("gossip"),
-        user_a.publicKey.toBuffer(),
-        index.toArrayLike(Buffer, "le", 8)
-      ],
-      program.programId
-    );
-
-    const [vaultPda, vaultBump] = anchor.web3.PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("vault"),
-        gossipPda.toBuffer(),
+        user_a.publicKey.toBuffer()
       ],
       program.programId
     );
@@ -53,13 +40,10 @@ describe("gossip", () => {
     try {
       const tx = await program.methods.createGossip(
         "I know",
-        user_b.publicKey,
-        index,
-        price
+        user_b.publicKey
       ).accounts({
         user: user_a.publicKey,
         gossip: gossipPda,
-        vault: vaultPda,
         systemProgram: anchor.web3.SystemProgram.programId,
       }).signers([user_a]).rpc();
 
@@ -67,6 +51,7 @@ describe("gossip", () => {
 
       const gossipAccount = await program.account.gossip.fetch(gossipPda);
 
+      console.log("Gossip PDA:", gossipPda.toBase58());
       console.log("✅ Gossip account:", gossipAccount);
     } catch (error) {
       console.error("❌ Transaction failed:", error);
@@ -75,24 +60,35 @@ describe("gossip", () => {
   });
 
   it("Reveal a gossip", async () => {
-    console.log("Actors on that test:")
-    console.log("User A:", user_a.publicKey.toBase58());
-    console.log("User B:", user_b.publicKey.toBase58());
-    console.log("Gossip PDA:", gossipPda.toBase58());
+    const buyer = user_b.publicKey;
 
+    const [vaultPda] = anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("gossip_vault"),
+        gossipPda.toBuffer()
+      ],
+      program.programId
+    );
 
     try {
-      const tx = await program.methods.revealGossip(new anchor.BN(0)).accounts({
-        user: user_b.publicKey,
+      const tx = await program.methods.revealGossip().accounts({
+        buyer,
         gossip: gossipPda,
       }).signers([user_b]).rpc();
 
       const gossipAccount = await program.account.gossip.fetch(gossipPda);
+      const vaultAccount = await program.account.gossipVault.fetch(vaultPda);
 
-      console.log("✅ Transaction successful:", tx, gossipAccount);
+      console.log("✅ Transaction successful:", tx, gossipAccount, vaultAccount, await provider.connection.getBalance(vaultPda) / LAMPORTS_PER_SOL);
+      console.log("Balance A: ", await provider.connection.getBalance(user_a.publicKey) / LAMPORTS_PER_SOL);
+      console.log("Balance B: ", await provider.connection.getBalance(user_b.publicKey) / LAMPORTS_PER_SOL);
     } catch (error) {
       console.error("❌ Transaction failed:", error);
       throw error;
     }
-  })
+  });
+
+  it("Withdraw from vault", async () => {
+    
+  });
 });

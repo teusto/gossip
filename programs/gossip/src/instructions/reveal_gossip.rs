@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_lang::system_program;
 
 use crate::{
-    state::Gossip,
+    state::{Gossip, GossipVault},
     errors::GossipError,
 };
 
@@ -11,20 +11,17 @@ pub struct RevealGossip<'info> {
     #[account(mut)]
     pub buyer: Signer<'info>,
 
-    #[account(
-        mut,
-        seeds = [b"gossip", gossip.maker.as_ref(), &gossip.index.to_le_bytes()],
-        bump = gossip.bump,
-    )]
+    #[account(mut)]
     pub gossip: Account<'info, Gossip>,
 
-    /// CHECK: This is a PDA vault that receives SOL payments. Seeds and bump are validated.
     #[account(
-        mut,
-        seeds = [b"vault", gossip.key().as_ref()],
-        bump = gossip.vault_bump,
+        init,
+        payer = buyer,
+        space = 8 + GossipVault::INIT_SPACE,
+        seeds = [b"gossip_vault", gossip.key().as_ref()],
+        bump
     )]
-    pub vault: UncheckedAccount<'info>,
+    pub vault: Account<'info, GossipVault>,
 
     pub system_program: Program<'info, System>,
 }
@@ -35,29 +32,28 @@ pub struct RevealGossip<'info> {
 * @return: Result of the instruction
 */
 pub fn reveal_gossip(ctx: Context<RevealGossip>) -> Result<()> {
-    let gossip = &mut ctx.accounts.gossip;
     let buyer = &ctx.accounts.buyer;
-    let vault = &ctx.accounts.vault;
-    
+    let gossip = &mut ctx.accounts.gossip;
+    let vault = &mut ctx.accounts.vault;
+
     if gossip.is_revealed {
         return Err(GossipError::GossipAlreadyRevealed.into());
     }
 
-    let price = gossip.price;
+    let cpi_accounts = anchor_lang::system_program::Transfer {
+        from: buyer.to_account_info(),
+        to: vault.to_account_info(),
+    };
 
-    system_program::transfer(
-        CpiContext::new(
-            ctx.accounts.system_program.to_account_info(),
-            system_program::Transfer {
-                from: ctx.accounts.buyer.to_account_info(),
-                to: ctx.accounts.vault.to_account_info(),
-            },
-        ),
-        price,
-    )?;
-    
+    let cpi_ctx = CpiContext::new(ctx.accounts.system_program.to_account_info(), cpi_accounts);
+    system_program::transfer(cpi_ctx, gossip.price)?;
+        
+
     gossip.is_revealed = true;
-    
+    vault.owner = gossip.maker;
+    vault.amount = gossip.price;
+    gossip.total_collected += ctx.accounts.vault.amount;
+
     msg!("Gossip revealed!");
     Ok(())
 }

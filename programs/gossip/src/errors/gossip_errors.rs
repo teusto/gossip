@@ -6,4 +6,6 @@ pub enum GossipError {
     GossipAlreadyRevealed,
     #[msg("Gossip not found")]
     GossipNotFound,
+    #[msg("Gossip not mentioned")]
+    GossipNotMentioned,
 }

@@ -1,4 +1,6 @@
 pub mod create_gossip;
 pub mod reveal_gossip;
+pub mod withdraw_from_vault;
 pub use create_gossip::*;
 pub use reveal_gossip::*;
+pub use withdraw_from_vault::*;
