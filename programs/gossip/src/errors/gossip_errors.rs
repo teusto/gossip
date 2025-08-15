@@ -10,4 +10,6 @@ pub enum GossipError {
     GossipNotMentioned,
     #[msg("Unauthorized withdrawal")]
     UnauthorizedWithdraw,
+    #[msg("Gossip not revealed yet")]
+    GossipNotRevealed,
 }
