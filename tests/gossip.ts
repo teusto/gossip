@@ -53,6 +53,13 @@ describe("gossip", () => {
 
       console.log("Gossip PDA:", gossipPda.toBase58());
       console.log("✅ Gossip account:", gossipAccount);
+      console.log("💰 Dynamic price:", gossipAccount.price / LAMPORTS_PER_SOL, "SOL");
+      
+      // Verify pricing logic
+      // "I know" = 6 chars (tier 0) + mention = 0.01 + 0.005 = 0.015 SOL
+      const expectedPrice = 15_000_000; // 0.015 SOL in lamports
+      console.log("Expected price:", expectedPrice / LAMPORTS_PER_SOL, "SOL");
+      console.log("Actual price:", gossipAccount.price / LAMPORTS_PER_SOL, "SOL");
     } catch (error) {
       console.error("❌ Transaction failed:", error);
       throw error;

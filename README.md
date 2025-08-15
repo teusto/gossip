@@ -23,7 +23,7 @@ The main data structure representing a gossip message.
 - **Maker**: The creator of the gossip message
 - **Text**: The gossip content (max 20 characters)
 - **Mention**: The person being mentioned in the gossip
-- **Price**: Fixed at 3 SOL per gossip reveal
+- **Price**: Dynamic price based on text length and mention status
 - **Is Revealed**: Boolean flag tracking revelation status
 - **Total Collected**: Running total of earnings from reveals
 
@@ -56,7 +56,7 @@ seeds = [b"gossip_vault", gossip.key().as_ref()]
 
 #### **Gossip Creation**
 - Create gossip messages with mentions of other users
-- Fixed pricing model (3 SOL per reveal)
+- Dynamic pricing model based on text length and mention status
 - Automatic PDA generation for each gossip
 - Text length validation (max 20 characters)
 
@@ -150,7 +150,7 @@ pub struct Gossip {
     pub text: String,         // Gossip content (max 20 chars)
     pub mention: Pubkey,      // Person mentioned
     pub is_revealed: bool,    // Revelation status
-    pub price: u64,          // Fixed at 3 SOL
+    pub price: u64,          // Dynamic price based on text length and mention status
     pub bump: u8,            // PDA bump seed
     pub total_collected: u64, // Total earnings
 }
@@ -199,7 +199,7 @@ pub struct GossipVault {
 ## Future Development
 
 ### Planned Features
-- **Dynamic Pricing**: Allow creators to set custom prices
+- **Dynamic Pricing**: Allow creators to set custom prices (tiered pricing)
 - **Batch Operations**: Multiple gossip management
 - **Reputation System**: Track user credibility
 - **Content Moderation**: Filtering and reporting mechanisms
