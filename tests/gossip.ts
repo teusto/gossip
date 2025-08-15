@@ -89,6 +89,64 @@ describe("gossip", () => {
   });
 
   it("Withdraw from vault", async () => {
+    const owner = user_a.publicKey; // gossip maker is the vault owner
+    const destination = user_a.publicKey; // withdraw to owner's account
     
+    const [vaultPda] = anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("gossip_vault"),
+        gossipPda.toBuffer()
+      ],
+      program.programId
+    );
+
+    console.log("🏦 Withdrawing from vault...");
+    console.log("Vault PDA:", vaultPda.toBase58());
+    
+    // Check balances before withdrawal
+    const vaultBalanceBefore = await provider.connection.getBalance(vaultPda);
+    const ownerBalanceBefore = await provider.connection.getBalance(owner);
+    
+    console.log("Vault balance before:", vaultBalanceBefore / LAMPORTS_PER_SOL, "SOL");
+    console.log("Owner balance before:", ownerBalanceBefore / LAMPORTS_PER_SOL, "SOL");
+  
+    try {
+      const tx = await program.methods.withdrawFromVault().accounts({
+        owner,
+        vault: vaultPda,
+        gossip: gossipPda,
+        destination,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      }).signers([user_a]).rpc();
+
+      console.log("✅ Withdrawal successful:", tx);
+      
+      // Check balances after withdrawal
+      const ownerBalanceAfter = await provider.connection.getBalance(owner);
+      const vaultBalanceAfter = await provider.connection.getBalance(vaultPda);
+      
+      console.log("Owner balance after:", ownerBalanceAfter / LAMPORTS_PER_SOL, "SOL");
+      console.log("Vault balance after:", vaultBalanceAfter / LAMPORTS_PER_SOL, "SOL");
+      console.log("Balance difference:", (ownerBalanceAfter - ownerBalanceBefore) / LAMPORTS_PER_SOL, "SOL");
+      
+      // Verify vault is completely empty (0 lamports)
+      if (vaultBalanceAfter === 0) {
+        console.log("✅ Vault is completely empty (0 lamports)");
+      } else {
+        console.log("❌ Vault still has", vaultBalanceAfter / LAMPORTS_PER_SOL, "SOL");
+      }
+      
+      // Verify vault account is closed
+      try {
+        await program.account.gossipVault.fetch(vaultPda);
+        console.log("❌ Vault account should be closed but still exists");
+      } catch (error) {
+        console.log("✅ Vault account successfully closed");
+      }
+      
+    } catch (error) {
+      console.error("❌ Transaction failed:", error);
+      throw error;
+    }
   });
 });
