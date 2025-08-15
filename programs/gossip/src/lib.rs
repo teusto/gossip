@@ -24,11 +24,6 @@ pub mod gossip {
         Ok(())
     }
 
-    pub fn withdraw_from_vault(_ctx: Context<WithdrawFromVault>) -> Result<()> {
-        let _ = instructions::withdraw_from_vault(_ctx);
-        Ok(())
-    }
-
     pub fn share_gossip(_ctx: Context<ShareGossip>) -> Result<()> {
         instructions::share_gossip(_ctx);
         Ok(())
@@ -36,6 +31,11 @@ pub mod gossip {
 
     pub fn reveal_shared_gossip(_ctx: Context<RevealSharedGossip>) -> Result<()> {
         instructions::reveal_shared_gossip(_ctx);
+        Ok(())
+    }
+
+    pub fn withdraw_from_any_vault(_ctx: Context<WithdrawFromAnyVault>) -> Result<()> {
+        instructions::withdraw_from_any_vault(_ctx);
         Ok(())
     }
 }

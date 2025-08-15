@@ -4,7 +4,7 @@
 ![Anchor](https://img.shields.io/badge/Anchor-00D4AA?style=for-the-badge&logo=anchor&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
 
-Gossip is a Solana program that enables users to create paid gossip messages with a reveal mechanism. Users can create gossip about others, and interested parties can pay to reveal the content, creating a monetized gossip marketplace on the blockchain.
+Gossip is a Solana program that enables users to create paid gossip messages with a reveal mechanism and sharing features. Users can create gossip about others, share existing gossip for revenue splits, and interested parties can pay to reveal content, creating a monetized gossip marketplace with viral sharing incentives on the blockchain.
 
 > [!NOTE]  
 > **Program ID**: `8afyMAB2tiA8a6M9KMYgWfcrLK5nKcbp7NBuqdYxW8kR`
@@ -140,6 +140,38 @@ await program.methods.withdrawFromVault().accounts({
 }).signers([creator]).rpc();
 ```
 
+### 4. **Gossip Sharing**
+```typescript
+await program.methods.shareGossip().accounts({
+  sharer: sharer.publicKey,
+  original_gossip: originalGossipPda,
+  shared_gossip: sharedGossipPda,
+  systemProgram: SystemProgram.programId,
+}).signers([sharer]).rpc();
+```
+
+### 5. **Shared Gossip Revelation**
+```typescript
+await program.methods.revealSharedGossip().accounts({
+  buyer: buyer.publicKey,
+  shared_gossip: sharedGossipPda,
+  creator_vault: creatorVaultPda,
+  sharer_vault: sharerVaultPda,
+  systemProgram: SystemProgram.programId,
+}).signers([buyer]).rpc();
+```
+
+### 6. **Shared Gossip Earnings Withdrawal**
+```typescript
+await program.methods.withdrawFromAnyVault().accounts({
+  owner: creator.publicKey,
+  vault: vaultPda,
+  gossip: gossipPda,
+  destination: creator.publicKey,
+  systemProgram: SystemProgram.programId,
+}).signers([creator]).rpc();
+```
+
 ## Technical Implementation
 
 ### State Management
@@ -159,6 +191,17 @@ pub struct Gossip {
 pub struct GossipVault {
     pub owner: Pubkey,       // Gossip creator
     pub amount: u64,         // Stored payment
+}
+
+#[account]
+pub struct SharedGossip {
+    pub original_gossip: Pubkey, // Original gossip PDA
+    pub sharer: Pubkey, // Sharer of the gossip
+    pub original_creator: Pubkey, // Original creator of the gossip
+    pub is_revealed: bool, // Revelation status
+    pub share_price: u64, // Share price (80% of original price)
+    pub total_collected: u64, // Total earnings
+    pub bump: u8, // PDA bump seed
 }
 ```
 
